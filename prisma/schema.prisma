@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Court {
+  id            String    @id @default(uuid())
+  name          String
+  address       String
+  suburb        String
+  state         String
+  postcode      String
+  latitude      Float
+  longitude     Float
+  facilityType  String    // 'dedicated_court' | 'gym' | 'community_centre'
+  indoor        Boolean   @default(true)
+  courtCount    Int?
+  bookingUrl    String?
+  websiteUrl    String?
+  phone         String?
+  openingHours  Json?
+  googlePlaceId String?   @unique
+  source        String    // 'google_places' | 'scraper' | 'manual'
+  verifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([suburb])
+  @@index([postcode])
+  @@index([state])
+  @@map("courts")
+}
