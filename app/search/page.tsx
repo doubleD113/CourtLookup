@@ -1,13 +1,34 @@
 import { prisma } from '@/lib/prisma'
 import CourtCard from '@/components/CourtCard'
+import SearchBar from '@/components/SearchBar'
 import Link from 'next/link'
 import { Court } from '@/types/court'
 
 interface Props {
-  searchParams: Promise<{ q?: string; facilityType?: string }>
+  searchParams: Promise<{
+    q?: string
+    facilityType?: string
+    lat?: string
+    lng?: string
+    radius?: string
+  }>
 }
 
-async function searchCourts(q: string, facilityType?: string): Promise<Court[]> {
+type CourtWithDistance = Court & { distanceKm?: number }
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+async function searchCourtsByText(q: string, facilityType?: string): Promise<Court[]> {
   const isPostcode = /^\d{4}$/.test(q.trim())
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,11 +43,38 @@ async function searchCourts(q: string, facilityType?: string): Promise<Court[]> 
   return prisma.court.findMany({ where, orderBy: { name: 'asc' }, take: 100 }) as Promise<Court[]>
 }
 
-export default async function SearchPage({ searchParams }: Props) {
-  const { q, facilityType } = await searchParams
-  const query = q?.trim() ?? ''
+async function searchCourtsByRadius(
+  lat: number,
+  lng: number,
+  radiusKm: number,
+  facilityType?: string,
+): Promise<CourtWithDistance[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {}
+  if (facilityType && facilityType !== 'all') where.facilityType = facilityType
 
-  const courts = query ? await searchCourts(query, facilityType) : []
+  const courts = (await prisma.court.findMany({ where, take: 500 })) as Court[]
+
+  return courts
+    .map((c) => ({ ...c, distanceKm: haversineKm(lat, lng, c.latitude, c.longitude) }))
+    .filter((c) => c.distanceKm <= radiusKm)
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+}
+
+export default async function SearchPage({ searchParams }: Props) {
+  const { q, facilityType, lat, lng, radius } = await searchParams
+  const query = q?.trim() ?? ''
+  const latNum = lat ? parseFloat(lat) : NaN
+  const lngNum = lng ? parseFloat(lng) : NaN
+  const radiusKm = radius ? parseFloat(radius) : 10
+  const hasGeo = Number.isFinite(latNum) && Number.isFinite(lngNum)
+
+  let courts: CourtWithDistance[] = []
+  if (hasGeo) {
+    courts = await searchCourtsByRadius(latNum, lngNum, radiusKm, facilityType)
+  } else if (query) {
+    courts = await searchCourtsByText(query, facilityType)
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -44,24 +92,10 @@ export default async function SearchPage({ searchParams }: Props) {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Search header */}
         <div className="mb-8">
-          <form method="GET" action="/search" className="flex flex-col sm:flex-row gap-3">
-            <input
-              name="q"
-              type="text"
-              defaultValue={query}
-              placeholder="Enter suburb or postcode..."
-              className="flex-1 px-5 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-            />
-            <button
-              type="submit"
-              className="px-7 py-3 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors whitespace-nowrap"
-            >
-              Search
-            </button>
-          </form>
+          <SearchBar defaultValue={query} variant="page" size="md" buttonLabel="Search" />
 
           {/* Filter row */}
-          {query && (
+          {(query || hasGeo) && (
             <div className="flex items-center gap-2 mt-4 flex-wrap">
               {['all', 'dedicated_court', 'community_centre', 'gym'].map((type) => {
                 const labels: Record<string, string> = {
@@ -71,10 +105,18 @@ export default async function SearchPage({ searchParams }: Props) {
                   gym: 'Gyms',
                 }
                 const isActive = (facilityType ?? 'all') === type
+                const params = new URLSearchParams()
+                if (query) params.set('q', query)
+                if (hasGeo) {
+                  params.set('lat', String(latNum))
+                  params.set('lng', String(lngNum))
+                  params.set('radius', String(radiusKm))
+                }
+                params.set('facilityType', type)
                 return (
                   <Link
                     key={type}
-                    href={`/search?q=${encodeURIComponent(query)}&facilityType=${type}`}
+                    href={`/search?${params.toString()}`}
                     className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
                       isActive
                         ? 'bg-orange-500 text-white border-orange-500'
@@ -90,20 +132,25 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
 
         {/* Results */}
-        {!query ? (
+        {!query && !hasGeo ? (
           <p className="text-slate-500 text-center py-20">Enter a suburb or postcode to find courts.</p>
         ) : courts.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-slate-700 font-medium">No courts found for &ldquo;{query}&rdquo;</p>
-            <p className="text-slate-500 text-sm mt-2">Try a nearby suburb or check the spelling.</p>
+            <p className="text-slate-700 font-medium">
+              No courts found{query ? <> for &ldquo;{query}&rdquo;</> : null}
+              {hasGeo ? <> within {radiusKm}km</> : null}
+            </p>
+            <p className="text-slate-500 text-sm mt-2">Try a nearby suburb or a larger area.</p>
           </div>
         ) : (
           <>
             <p className="text-slate-500 text-sm mb-4">
               {courts.length} court{courts.length !== 1 ? 's' : ''} found
-              {query && (
+              {hasGeo && query ? (
+                <> within {radiusKm}km of <span className="font-medium text-slate-700">{query}</span></>
+              ) : query ? (
                 <> near <span className="font-medium text-slate-700">{query}</span></>
-              )}
+              ) : null}
             </p>
             <div className="flex flex-col gap-3">
               {courts.map((court) => (
