@@ -32,6 +32,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# seed output
+/seed-output.json
+
+# claude
+.claude/
+CLAUDE.md
+PLAN.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

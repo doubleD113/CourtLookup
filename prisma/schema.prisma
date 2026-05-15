@@ -16,7 +16,7 @@ model Court {
   latitude      Float
   longitude     Float
   facilityType  String    // 'dedicated_court' | 'gym' | 'community_centre'
-  indoor        Boolean   @default(true)
+  surface       String    @default("indoor") // 'indoor' | 'outdoor' | 'both'
   courtCount    Int?
   bookingUrl    String?
   websiteUrl    String?

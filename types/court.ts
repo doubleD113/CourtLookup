@@ -1,39 +1,41 @@
-export interface Court {
-  id: string;
-  name: string;
-  address: string;
-  suburb: string;
-  state: string;
-  postcode: string;
-  latitude: number;
-  longitude: number;
-  type: 'indoor' | 'outdoor';
-  facilityType: 'dedicated_court' | 'gym';
-  bookingUrl: string;
-  sourceWebsite: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type FacilityType = 'dedicated_court' | 'gym' | 'community_centre'
+export type CourtSource = 'google_places' | 'scraper' | 'manual'
+export type Surface = 'indoor' | 'outdoor' | 'both'
 
-export interface CourtAvailability {
-  id: string;
-  courtId: string;
-  date: Date;
-  timeSlot: string;
-  isAvailable: boolean;
-  scrapedAt: Date;
+export interface Court {
+  id: string
+  name: string
+  address: string
+  suburb: string
+  state: string
+  postcode: string
+  latitude: number
+  longitude: number
+  facilityType: FacilityType
+  surface: Surface
+  courtCount: number | null
+  bookingUrl: string | null
+  websiteUrl: string | null
+  phone: string | null
+  openingHours: Record<string, string> | null
+  googlePlaceId: string | null
+  source: CourtSource
+  verifiedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface CourtSearchParams {
-  location?: string;
-  latitude?: number;
-  longitude?: number;
-  radius?: number; // in kilometers
-  type?: 'indoor' | 'outdoor' | 'all';
-  facilityType?: 'dedicated_court' | 'gym' | 'all';
+  q?: string
+  suburb?: string
+  postcode?: string
+  state?: string
+  latitude?: number
+  longitude?: number
+  radiusKm?: number
+  facilityType?: FacilityType | 'all'
 }
 
 export interface CourtSearchResult extends Court {
-  distance?: number; // in kilometers
-  availability?: CourtAvailability[];
+  distanceKm?: number
 }
