@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BackButton from '@/components/BackButton'
+import FlagSurfaceButton from '@/components/FlagSurfaceButton'
+import type { Surface } from '@/types/court'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -62,13 +64,20 @@ export default async function CourtDetailPage({ params }: Props) {
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           {/* Header */}
           <div className="p-6 border-b border-slate-100">
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                 {FACILITY_LABELS[court.facilityType] ?? court.facilityType}
               </span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${SURFACE_STYLES[court.surface] ?? 'bg-slate-100 text-slate-600'}`}>
                 {SURFACE_LABELS[court.surface] ?? court.surface}
               </span>
+              <FlagSurfaceButton
+                courtId={court.id}
+                currentSurface={court.surface as Surface}
+                align="left"
+                direction="down"
+                label="Report incorrect"
+              />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">{court.name}</h1>
             <p className="text-slate-500 mt-1">{court.address}</p>

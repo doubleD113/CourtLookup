@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import CourtCard from '@/components/CourtCard'
 import SearchBar from '@/components/SearchBar'
+import SearchResults from '@/components/SearchResults'
 import Link from 'next/link'
 import { Court } from '@/types/court'
 
@@ -89,76 +89,20 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Search header */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
           <SearchBar defaultValue={query} variant="page" size="md" buttonLabel="Search" />
-
-          {/* Filter row */}
-          {(query || hasGeo) && (
-            <div className="flex items-center gap-2 mt-4 flex-wrap">
-              {['all', 'dedicated_court', 'community_centre', 'gym'].map((type) => {
-                const labels: Record<string, string> = {
-                  all: 'All types',
-                  dedicated_court: 'Dedicated courts',
-                  community_centre: 'Community centres',
-                  gym: 'Gyms',
-                }
-                const isActive = (facilityType ?? 'all') === type
-                const params = new URLSearchParams()
-                if (query) params.set('q', query)
-                if (hasGeo) {
-                  params.set('lat', String(latNum))
-                  params.set('lng', String(lngNum))
-                  params.set('radius', String(radiusKm))
-                }
-                params.set('facilityType', type)
-                return (
-                  <Link
-                    key={type}
-                    href={`/search?${params.toString()}`}
-                    className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                      isActive
-                        ? 'bg-orange-500 text-white border-orange-500'
-                        : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
-                    }`}
-                  >
-                    {labels[type]}
-                  </Link>
-                )
-              })}
-            </div>
-          )}
         </div>
 
-        {/* Results */}
-        {!query && !hasGeo ? (
-          <p className="text-slate-500 text-center py-20">Enter a suburb or postcode to find courts.</p>
-        ) : courts.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-slate-700 font-medium">
-              No courts found{query ? <> for &ldquo;{query}&rdquo;</> : null}
-              {hasGeo ? <> within {radiusKm}km</> : null}
-            </p>
-            <p className="text-slate-500 text-sm mt-2">Try a nearby suburb or a larger area.</p>
-          </div>
-        ) : (
-          <>
-            <p className="text-slate-500 text-sm mb-4">
-              {courts.length} court{courts.length !== 1 ? 's' : ''} found
-              {hasGeo && query ? (
-                <> within {radiusKm}km of <span className="font-medium text-slate-700">{query}</span></>
-              ) : query ? (
-                <> near <span className="font-medium text-slate-700">{query}</span></>
-              ) : null}
-            </p>
-            <div className="flex flex-col gap-3">
-              {courts.map((court) => (
-                <CourtCard key={court.id} court={court} />
-              ))}
-            </div>
-          </>
-        )}
+        <SearchResults
+          courts={courts}
+          query={query}
+          hasGeo={hasGeo}
+          lat={hasGeo ? latNum : undefined}
+          lng={hasGeo ? lngNum : undefined}
+          radiusKm={radiusKm}
+          facilityType={facilityType}
+        />
       </main>
     </div>
   )

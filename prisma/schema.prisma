@@ -28,8 +28,23 @@ model Court {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  flags         CourtFlag[]
+
   @@index([suburb])
   @@index([postcode])
   @@index([state])
   @@map("courts")
+}
+
+model CourtFlag {
+  id               String   @id @default(uuid())
+  courtId          String
+  court            Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  suggestedSurface String   // 'indoor' | 'outdoor' | 'both'
+  ipHash           String
+  createdAt        DateTime @default(now())
+
+  @@unique([courtId, ipHash])
+  @@index([courtId])
+  @@map("court_flags")
 }

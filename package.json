@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "seed:melbourne": "tsx scripts/seed-melbourne.ts",
-    "seed:db": "tsx scripts/seed-db.ts"
+    "seed:db": "tsx scripts/seed-db.ts",
+    "classify:surface": "tsx scripts/classify-surface.ts"
   },
   "keywords": [],
   "author": "",

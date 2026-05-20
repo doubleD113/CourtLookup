@@ -1,26 +1,68 @@
 import SearchBar from '@/components/SearchBar'
 import MapPreview from '@/components/MapPreview'
 
-const FEATURES = [
+type IconName = 'pin' | 'link' | 'filter'
+
+const FEATURES: { icon: IconName; title: string; description: string }[] = [
   {
-    icon: '📍',
+    icon: 'pin',
     title: 'Verified Directory',
     description:
       'Every court is manually checked. We show a "last verified" date so you know how fresh the data is.',
   },
   {
-    icon: '🔗',
+    icon: 'link',
     title: 'Direct Booking Links',
     description:
       'No middleman. We link straight to each venue\'s own booking page so you book directly.',
   },
   {
-    icon: '🔍',
+    icon: 'filter',
     title: 'Filter & Find',
     description:
       'Filter by distance, facility type, or indoor/outdoor. Find exactly the court you need.',
   },
 ]
+
+function FeatureIcon({ name }: { name: IconName }) {
+  const common = {
+    width: 28,
+    height: 28,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.75,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }
+  switch (name) {
+    case 'pin':
+      return (
+        <svg {...common}>
+          <path d="M12 21s-7-6.5-7-12a7 7 0 1 1 14 0c0 5.5-7 12-7 12Z" />
+          <circle cx="12" cy="9" r="2.5" />
+        </svg>
+      )
+    case 'link':
+      return (
+        <svg {...common}>
+          <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.5 1.5" />
+          <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.5-1.5" />
+        </svg>
+      )
+    case 'filter':
+      return (
+        <svg {...common}>
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+          <circle cx="9" cy="7" r="2.25" fill="white" />
+          <circle cx="15" cy="12" r="2.25" fill="white" />
+          <circle cx="8" cy="17" r="2.25" fill="white" />
+        </svg>
+      )
+  }
+}
 
 const STEPS = [
   { number: '01', title: 'Search', description: 'Enter your suburb or postcode' },
@@ -79,16 +121,21 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="py-24 bg-slate-50">
+      <section className="pt-20 pb-16 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900">Built for finding courts, not scraping them</h2>
             <p className="text-slate-500 mt-3 text-lg">Accurate, curated data — updated regularly, not in real-time</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {FEATURES.map((f) => (
-              <div key={f.title} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                <div className="text-4xl mb-4">{f.icon}</div>
+              <div
+                key={f.title}
+                className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center"
+              >
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-orange-50 text-orange-500 mb-4">
+                  <FeatureIcon name={f.icon} />
+                </div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">{f.title}</h3>
                 <p className="text-slate-500 leading-relaxed">{f.description}</p>
               </div>
@@ -98,15 +145,18 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="py-24 bg-white">
+      <section id="how-it-works" className="pt-16 pb-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900">How it works</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
             {STEPS.map((step) => (
-              <div key={step.number} className="text-center">
-                <div className="text-5xl font-bold text-orange-100 mb-2">{step.number}</div>
+              <div
+                key={step.number}
+                className="text-center bg-slate-50 border border-slate-200 rounded-2xl p-8"
+              >
+                <div className="text-5xl font-bold text-orange-500 mb-2">{step.number}</div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">{step.title}</h3>
                 <p className="text-slate-500">{step.description}</p>
               </div>
