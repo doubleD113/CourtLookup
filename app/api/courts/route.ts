@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {}
+  const where: any = { hiddenAt: null }
 
   if (q) {
     const isPostcode = /^\d{4}$/.test(q)

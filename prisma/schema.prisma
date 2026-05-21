@@ -25,6 +25,8 @@ model Court {
   googlePlaceId String?   @unique
   source        String    // 'google_places' | 'scraper' | 'manual'
   verifiedAt    DateTime?
+  surfaceVerifiedAt DateTime?
+  hiddenAt      DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -33,18 +35,21 @@ model Court {
   @@index([suburb])
   @@index([postcode])
   @@index([state])
+  @@index([hiddenAt])
   @@map("courts")
 }
 
 model CourtFlag {
-  id               String   @id @default(uuid())
-  courtId          String
-  court            Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
-  suggestedSurface String   // 'indoor' | 'outdoor' | 'both'
-  ipHash           String
-  createdAt        DateTime @default(now())
+  id        String   @id @default(uuid())
+  courtId   String
+  court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  kind      String   // 'surface' | 'court_existence'
+  payload   Json     // surface: { surface: 'indoor'|'outdoor'|'both' }; court_existence: { hasCourt: boolean }
+  ipHash    String
+  createdAt DateTime @default(now())
 
-  @@unique([courtId, ipHash])
+  @@unique([courtId, kind, ipHash])
   @@index([courtId])
+  @@index([kind])
   @@map("court_flags")
 }

@@ -3,11 +3,35 @@ import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 
 const VALID_SURFACES = new Set(['indoor', 'outdoor', 'both'])
+const VALID_KINDS = new Set(['surface', 'court_existence'])
 
 function hashIp(req: NextRequest): string {
   const fwd = req.headers.get('x-forwarded-for')
   const ip = fwd?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? 'unknown'
   return createHash('sha256').update(ip).digest('hex').slice(0, 32)
+}
+
+interface FlagBody {
+  kind?: string
+  payload?: unknown
+}
+
+function validatePayload(kind: string, payload: unknown): { ok: true; payload: object } | { ok: false; error: string } {
+  if (kind === 'surface') {
+    const p = payload as { surface?: string } | null
+    if (!p || typeof p.surface !== 'string' || !VALID_SURFACES.has(p.surface)) {
+      return { ok: false, error: 'payload.surface must be indoor, outdoor, or both' }
+    }
+    return { ok: true, payload: { surface: p.surface } }
+  }
+  if (kind === 'court_existence') {
+    const p = payload as { hasCourt?: unknown } | null
+    if (!p || typeof p.hasCourt !== 'boolean') {
+      return { ok: false, error: 'payload.hasCourt must be boolean' }
+    }
+    return { ok: true, payload: { hasCourt: p.hasCourt } }
+  }
+  return { ok: false, error: 'Unknown kind' }
 }
 
 export async function POST(
@@ -16,19 +40,21 @@ export async function POST(
 ) {
   const { id } = await params
 
-  let body: { suggestedSurface?: string }
+  let body: FlagBody
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const suggestedSurface = body.suggestedSurface
-  if (!suggestedSurface || !VALID_SURFACES.has(suggestedSurface)) {
-    return NextResponse.json(
-      { error: 'suggestedSurface must be indoor, outdoor, or both' },
-      { status: 400 },
-    )
+  const kind = body.kind
+  if (!kind || !VALID_KINDS.has(kind)) {
+    return NextResponse.json({ error: 'kind must be surface or court_existence' }, { status: 400 })
+  }
+
+  const validated = validatePayload(kind, body.payload)
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 })
   }
 
   const court = await prisma.court.findUnique({ where: { id }, select: { id: true } })
@@ -39,9 +65,9 @@ export async function POST(
   const ipHash = hashIp(req)
 
   await prisma.courtFlag.upsert({
-    where: { courtId_ipHash: { courtId: id, ipHash } },
-    create: { courtId: id, ipHash, suggestedSurface },
-    update: { suggestedSurface, createdAt: new Date() },
+    where: { courtId_kind_ipHash: { courtId: id, kind, ipHash } },
+    create: { courtId: id, kind, ipHash, payload: validated.payload },
+    update: { payload: validated.payload, createdAt: new Date() },
   })
 
   return NextResponse.json({ ok: true })

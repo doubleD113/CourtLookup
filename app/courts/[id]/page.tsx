@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BackButton from '@/components/BackButton'
-import FlagSurfaceButton from '@/components/FlagSurfaceButton'
+import FlagButton from '@/components/FlagButton'
 import type { Surface } from '@/types/court'
 
 interface Props {
@@ -41,7 +41,7 @@ export default async function CourtDetailPage({ params }: Props) {
   const { id } = await params
   const court = await prisma.court.findUnique({ where: { id } })
 
-  if (!court) notFound()
+  if (!court || court.hiddenAt) notFound()
 
   const hours = court.openingHours as Record<string, string> | null
 
@@ -71,12 +71,29 @@ export default async function CourtDetailPage({ params }: Props) {
               <span className={`text-xs px-2 py-0.5 rounded-full ${SURFACE_STYLES[court.surface] ?? 'bg-slate-100 text-slate-600'}`}>
                 {SURFACE_LABELS[court.surface] ?? court.surface}
               </span>
-              <FlagSurfaceButton
+              {court.surfaceVerifiedAt && (
+                <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-2 py-0.5 rounded-full">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.704 5.296a1 1 0 0 1 0 1.414l-7.5 7.5a1 1 0 0 1-1.414 0l-3.5-3.5a1 1 0 1 1 1.414-1.414L8.5 12.086l6.79-6.79a1 1 0 0 1 1.414 0Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Verified{' '}
+                  {new Date(court.surfaceVerifiedAt).toLocaleDateString('en-AU', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+              )}
+              <FlagButton
                 courtId={court.id}
                 currentSurface={court.surface as Surface}
                 align="left"
                 direction="down"
-                label="Report incorrect"
+                label={court.surfaceVerifiedAt ? 'Still wrong? Let us know again' : 'Report incorrect'}
               />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">{court.name}</h1>

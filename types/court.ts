@@ -21,6 +21,8 @@ export interface Court {
   googlePlaceId: string | null
   source: CourtSource
   verifiedAt: Date | null
+  surfaceVerifiedAt: Date | null
+  hiddenAt: Date | null
   createdAt: Date
   updatedAt: Date
 }

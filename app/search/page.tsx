@@ -36,6 +36,8 @@ async function searchCourtsByText(q: string, facilityType?: string): Promise<Cou
     ? { postcode: q.trim() }
     : { suburb: { contains: q.trim(), mode: 'insensitive' } }
 
+  where.hiddenAt = null
+
   if (facilityType && facilityType !== 'all') {
     where.facilityType = facilityType
   }
@@ -50,7 +52,7 @@ async function searchCourtsByRadius(
   facilityType?: string,
 ): Promise<CourtWithDistance[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {}
+  const where: any = { hiddenAt: null }
   if (facilityType && facilityType !== 'all') where.facilityType = facilityType
 
   const courts = (await prisma.court.findMany({ where, take: 500 })) as Court[]
