@@ -118,9 +118,23 @@ export default async function AdminFlagsPage() {
             <span className="text-xs uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">
               Admin
             </span>
+            <div className="hidden sm:flex items-center gap-1 text-sm ml-2">
+              <span className="px-3 py-1.5 rounded-lg bg-orange-500 text-white font-medium">
+                Flags
+              </span>
+              <Link
+                href="/admin/health"
+                className="px-3 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+              >
+                Health
+              </Link>
+            </div>
           </div>
           <form action="/api/admin/logout" method="post">
-            <button type="submit" className="text-xs text-slate-300 hover:text-white transition-colors">
+            <button
+              type="submit"
+              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 hover:border-slate-600 hover:text-white transition-colors"
+            >
               Sign out
             </button>
           </form>

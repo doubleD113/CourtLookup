@@ -31,12 +31,26 @@ model Court {
   updatedAt     DateTime  @updatedAt
 
   flags         CourtFlag[]
+  urlHealth     UrlHealth?
 
   @@index([suburb])
   @@index([postcode])
   @@index([state])
   @@index([hiddenAt])
   @@map("courts")
+}
+
+model UrlHealth {
+  id        String   @id @default(uuid())
+  courtId   String   @unique
+  court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  url       String
+  status    Int      // HTTP status code, or -1 for network error
+  errorMsg  String?
+  checkedAt DateTime @default(now())
+
+  @@index([status])
+  @@map("url_health")
 }
 
 model CourtFlag {

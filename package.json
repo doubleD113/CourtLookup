@@ -9,7 +9,8 @@
     "lint": "next lint",
     "seed:melbourne": "tsx scripts/seed-melbourne.ts",
     "seed:db": "tsx scripts/seed-db.ts",
-    "classify:surface": "tsx scripts/classify-surface.ts"
+    "classify:surface": "tsx scripts/classify-surface.ts",
+    "check:urls": "tsx scripts/check-booking-urls.ts"
   },
   "keywords": [],
   "author": "",
