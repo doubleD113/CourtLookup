@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
+import { sendDiscordNotification } from '@/lib/discord'
 
 const VALID_SURFACES = new Set(['indoor', 'outdoor', 'both'])
 const VALID_KINDS = new Set(['surface', 'court_existence'])
@@ -57,7 +58,10 @@ export async function POST(
     return NextResponse.json({ error: validated.error }, { status: 400 })
   }
 
-  const court = await prisma.court.findUnique({ where: { id }, select: { id: true } })
+  const court = await prisma.court.findUnique({
+    where: { id },
+    select: { id: true, name: true, suburb: true, state: true },
+  })
   if (!court) {
     return NextResponse.json({ error: 'Court not found' }, { status: 404 })
   }
@@ -68,6 +72,27 @@ export async function POST(
     where: { courtId_kind_ipHash: { courtId: id, kind, ipHash } },
     create: { courtId: id, kind, ipHash, payload: validated.payload },
     update: { payload: validated.payload, createdAt: new Date() },
+  })
+
+  const origin = req.headers.get('origin') ?? new URL(req.url).origin
+  const reviewUrl = `${origin}/admin/flags`
+  const courtUrl = `${origin}/courts/${id}`
+  const isExistence = kind === 'court_existence'
+  const payloadSummary = isExistence
+    ? (validated.payload as { hasCourt: boolean }).hasCourt
+      ? 'Reporter says court DOES exist'
+      : 'Reporter says court does NOT exist'
+    : `Suggested surface: ${(validated.payload as { surface: string }).surface}`
+
+  sendDiscordNotification({
+    title: `New ${isExistence ? 'court-existence' : 'surface'} report`,
+    description: `**[${court.name}](${courtUrl})**\n${court.suburb}, ${court.state}`,
+    color: isExistence ? 0xef4444 : 0xf97316,
+    fields: [
+      { name: 'Report', value: payloadSummary },
+      { name: 'Review', value: `[Open admin queue](${reviewUrl})` },
+    ],
+    timestamp: new Date().toISOString(),
   })
 
   return NextResponse.json({ ok: true })

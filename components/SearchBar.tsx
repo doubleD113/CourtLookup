@@ -29,6 +29,8 @@ export default function SearchBar({
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [resolving, setResolving] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
   const skipNextFetchRef = useRef(false)
@@ -103,6 +105,59 @@ export default function SearchBar({
       setResolving(false)
     }
     navigateToSearch(label)
+  }
+
+  function useMyLocation() {
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
+      setGeoError('Location not supported by this browser')
+      return
+    }
+    setGeoError(null)
+    setLocating(true)
+
+    let settled = false
+    let watchId: number | null = null
+    const hardTimeout = window.setTimeout(() => {
+      if (settled) return
+      settled = true
+      if (watchId != null) navigator.geolocation.clearWatch(watchId)
+      setLocating(false)
+      setGeoError(
+        'Location request timed out — check macOS Location Services for your browser, then retry',
+      )
+    }, 30000)
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(hardTimeout)
+        if (watchId != null) navigator.geolocation.clearWatch(watchId)
+        setLocating(false)
+        navigateToSearch('Current location', pos.coords.latitude, pos.coords.longitude)
+      },
+      (err) => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(hardTimeout)
+        if (watchId != null) navigator.geolocation.clearWatch(watchId)
+        setLocating(false)
+        console.error('[useMyLocation] geolocation error', {
+          code: err.code,
+          message: err.message,
+        })
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoError('Location permission denied — check your browser/site settings')
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setGeoError('Location unavailable — your device could not determine a position')
+        } else if (err.code === err.TIMEOUT) {
+          setGeoError('Location request timed out — try again')
+        } else {
+          setGeoError(err.message || 'Could not get your location')
+        }
+      },
+      { enableHighAccuracy: false, timeout: 30000, maximumAge: 300000 },
+    )
   }
 
   function handleSubmit(e: FormEvent) {
@@ -196,6 +251,42 @@ export default function SearchBar({
           {buttonLabel}
         </button>
       </form>
+      <div className="mt-3 flex items-center gap-3 text-sm">
+        <button
+          type="button"
+          onClick={useMyLocation}
+          disabled={locating || resolving}
+          className={`inline-flex items-center gap-1.5 font-medium disabled:opacity-60 disabled:cursor-not-allowed ${
+            variant === 'hero'
+              ? 'text-orange-300 hover:text-orange-200'
+              : 'text-orange-600 hover:text-orange-500'
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-4 h-4"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3" />
+            <path d="M12 19v3" />
+            <path d="M2 12h3" />
+            <path d="M19 12h3" />
+          </svg>
+          {locating ? 'Locating…' : 'Use my location'}
+        </button>
+        {geoError && (
+          <span className={variant === 'hero' ? 'text-rose-300' : 'text-rose-600'}>
+            {geoError}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

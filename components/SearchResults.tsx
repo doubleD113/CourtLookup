@@ -51,11 +51,17 @@ export default function SearchResults({
   const [view, setView] = useState<'list' | 'map'>('list')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [pendingRadius, setPendingRadius] = useState(radiusKm)
+  const hasFacilityFilter = !!facilityType && facilityType !== 'all'
+  const [showMoreFilters, setShowMoreFilters] = useState(hasFacilityFilter)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
     setPendingRadius(radiusKm)
   }, [radiusKm])
+
+  useEffect(() => {
+    if (hasFacilityFilter) setShowMoreFilters(true)
+  }, [hasFacilityFilter])
 
   const center = useMemo(() => {
     if (hasGeo && lat !== undefined && lng !== undefined) return { lat, lng }
@@ -170,8 +176,31 @@ export default function SearchResults({
 
   const filters = (
     <div className="flex flex-col gap-3">
-      {facilityPills}
-      {surfacePills}
+      <div className="flex items-center gap-2 flex-wrap">
+        {surfacePills}
+        <button
+          type="button"
+          onClick={() => setShowMoreFilters((v) => !v)}
+          aria-expanded={showMoreFilters}
+          className="text-sm px-3 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-700 transition-colors inline-flex items-center gap-1"
+        >
+          More filters
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className={`w-3.5 h-3.5 transition-transform ${showMoreFilters ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+      {showMoreFilters && facilityPills}
     </div>
   )
 
