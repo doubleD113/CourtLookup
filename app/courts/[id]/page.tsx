@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BackButton from '@/components/BackButton'
 import FlagButton from '@/components/FlagButton'
+import CourtMap from '@/components/CourtMap'
 import type { Surface } from '@/types/court'
 
 interface Props {
@@ -184,9 +185,14 @@ export default async function CourtDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Map embed placeholder */}
-        <div className="mt-6 bg-slate-200 rounded-2xl h-48 flex items-center justify-center">
-          <p className="text-slate-400 text-sm">Map coming in Phase 2</p>
+        <div className="mt-6">
+          <CourtMap
+            name={court.name}
+            address={court.address}
+            latitude={court.latitude}
+            longitude={court.longitude}
+            googlePlaceId={court.googlePlaceId}
+          />
         </div>
       </main>
     </div>

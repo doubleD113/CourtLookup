@@ -1,5 +1,6 @@
 import SearchBar from '@/components/SearchBar'
 import MapPreview from '@/components/MapPreview'
+import { prisma } from '@/lib/prisma'
 
 type IconName = 'pin' | 'link' | 'filter'
 
@@ -70,7 +71,14 @@ const STEPS = [
   { number: '03', title: 'Book', description: 'Click through to book on the venue\'s own site' },
 ]
 
-export default function Home() {
+export default async function Home() {
+  const previewCourts = await prisma.court.findMany({
+    where: { hiddenAt: null },
+    select: { id: true, name: true, latitude: true, longitude: true },
+    orderBy: { verifiedAt: { sort: 'desc', nulls: 'last' } },
+    take: 30,
+  })
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
@@ -111,9 +119,9 @@ export default function Home() {
             </div>
             {/* Right: map preview */}
             <div>
-              <MapPreview />
+              <MapPreview courts={previewCourts} />
               <p className="text-slate-500 text-xs text-center mt-3">
-                Sample courts shown &mdash; sign up to see all venues
+                Showing {previewCourts.length} of our verified Melbourne courts &mdash; tap a marker to view details
               </p>
             </div>
           </div>

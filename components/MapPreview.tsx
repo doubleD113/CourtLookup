@@ -1,21 +1,34 @@
 'use client'
 
-import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
+import { useEffect } from 'react'
+import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps'
+import { useRouter } from 'next/navigation'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
-
-// Sample courts for preview — will be replaced by DB data
-const SAMPLE_COURTS = [
-  { id: 1, name: 'Melbourne Sports & Aquatic Centre', lat: -37.8374, lng: 144.9605 },
-  { id: 2, name: 'Coburg Basketball Stadium', lat: -37.7447, lng: 144.9652 },
-  { id: 3, name: 'State Basketball Centre', lat: -37.8786, lng: 145.1316 },
-  { id: 4, name: 'Knox Basketball Stadium', lat: -37.8793, lng: 145.2344 },
-  { id: 5, name: 'Dandenong Basketball', lat: -37.9876, lng: 145.2156 },
-]
-
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
 
-export default function MapPreview() {
+export interface MapPreviewCourt {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+}
+
+function FitBounds({ courts }: { courts: MapPreviewCourt[] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!map || courts.length === 0) return
+    const bounds = new google.maps.LatLngBounds()
+    courts.forEach((c) => bounds.extend({ lat: c.latitude, lng: c.longitude }))
+    map.fitBounds(bounds, 48)
+  }, [map, courts])
+
+  return null
+}
+
+export default function MapPreview({ courts }: { courts: MapPreviewCourt[] }) {
+  const router = useRouter()
   const hasApiKey = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
 
   if (!hasApiKey) {
@@ -37,17 +50,19 @@ export default function MapPreview() {
         defaultZoom={11}
         mapId={MAP_ID}
         disableDefaultUI
-        gestureHandling="none"
+        gestureHandling="cooperative"
         className="w-full h-full"
       >
+        <FitBounds courts={courts} />
         {MAP_ID &&
-          SAMPLE_COURTS.map((court) => (
+          courts.map((court) => (
             <AdvancedMarker
               key={court.id}
-              position={{ lat: court.lat, lng: court.lng }}
+              position={{ lat: court.latitude, lng: court.longitude }}
               title={court.name}
+              onClick={() => router.push(`/courts/${court.id}`)}
             >
-              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg text-white text-sm font-bold border-2 border-white">
+              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg text-white text-sm font-bold border-2 border-white cursor-pointer hover:scale-110 transition-transform">
                 🏀
               </div>
             </AdvancedMarker>
