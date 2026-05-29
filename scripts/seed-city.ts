@@ -12,6 +12,80 @@ if (!API_KEY) {
   process.exit(1)
 }
 
+interface CityConfig {
+  slug: string
+  label: string
+  state: string
+  center: { latitude: number; longitude: number }
+  radiusMeters: number
+  extraExcludePatterns?: RegExp[]
+}
+
+const CITIES: Record<string, CityConfig> = {
+  melbourne: {
+    slug: 'melbourne',
+    label: 'Greater Melbourne',
+    state: 'VIC',
+    center: { latitude: -37.8136, longitude: 144.9631 },
+    radiusMeters: 40_000,
+    extraExcludePatterns: [
+      /rod laver/i,
+      /margaret court/i,
+      /john cain/i,
+      /melbourne park/i,
+      /melbourne (and|&) olympic parks/i,
+      /marvel stadium/i,
+      /\bmcg\b/i,
+      /melbourne cricket ground/i,
+      /hisense arena/i,
+      /aami park/i,
+      /etihad stadium/i,
+      /docklands stadium/i,
+      /kia arena/i,
+      /sidney myer music bowl/i,
+    ],
+  },
+  sydney: {
+    slug: 'sydney',
+    label: 'Greater Sydney',
+    state: 'NSW',
+    center: { latitude: -33.8688, longitude: 151.2093 },
+    radiusMeters: 50_000,
+    extraExcludePatterns: [
+      /qudos bank arena/i,
+      /\bken rosewall arena\b/i,
+      /accor stadium/i,
+      /allianz stadium/i,
+      /\bcommbank stadium\b/i,
+      /\bscg\b/i,
+      /sydney cricket ground/i,
+      /sydney showground stadium/i,
+      /qantas credit union arena/i,
+      /aware super theatre/i,
+      /the star event centre/i,
+      /\bicc sydney\b/i,
+    ],
+  },
+  brisbane: {
+    slug: 'brisbane',
+    label: 'Greater Brisbane',
+    state: 'QLD',
+    center: { latitude: -27.4698, longitude: 153.0251 },
+    radiusMeters: 45_000,
+    extraExcludePatterns: [
+      /suncorp stadium/i,
+      /\bthe gabba\b/i,
+      /brisbane cricket ground/i,
+      /queensland country bank stadium/i,
+      /brisbane entertainment centre/i,
+      /\bbcec\b/i,
+      /brisbane convention/i,
+      /\brna showgrounds\b/i,
+      /\bcbus super stadium\b/i,
+    ],
+  },
+}
+
 const QUERIES = [
   'indoor basketball court',
   'basketball stadium',
@@ -19,8 +93,6 @@ const QUERIES = [
   'recreation centre basketball',
 ] as const
 
-const MELBOURNE_CENTER = { latitude: -37.8136, longitude: 144.9631 }
-const RADIUS_METERS = 40_000
 const PAGE_DELAY_MS = 2_500
 const MAX_PAGES_PER_QUERY = 3
 
@@ -95,13 +167,14 @@ interface DerivedCourt {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 async function searchTextPage(
+  city: CityConfig,
   textQuery: string,
   pageToken?: string,
 ): Promise<SearchTextResponse> {
   const body: Record<string, unknown> = {
     textQuery,
     locationBias: {
-      circle: { center: MELBOURNE_CENTER, radius: RADIUS_METERS },
+      circle: { center: city.center, radius: city.radiusMeters },
     },
     pageSize: 20,
   }
@@ -124,12 +197,15 @@ async function searchTextPage(
   return res.json() as Promise<SearchTextResponse>
 }
 
-async function searchAllPages(textQuery: string): Promise<PlaceResult[]> {
+async function searchAllPages(
+  city: CityConfig,
+  textQuery: string,
+): Promise<PlaceResult[]> {
   const all: PlaceResult[] = []
   let pageToken: string | undefined
   for (let page = 0; page < MAX_PAGES_PER_QUERY; page++) {
     if (page > 0) await sleep(PAGE_DELAY_MS)
-    const res = await searchTextPage(textQuery, pageToken)
+    const res = await searchTextPage(city, textQuery, pageToken)
     if (res.places) all.push(...res.places)
     if (!res.nextPageToken) break
     pageToken = res.nextPageToken
@@ -143,23 +219,6 @@ function pickComponent(
 ): PlaceAddressComponent | undefined {
   return components?.find((c) => c.types?.includes(type))
 }
-
-const EVENT_ARENA_PATTERNS = [
-  /rod laver/i,
-  /margaret court/i,
-  /john cain/i,
-  /melbourne park/i,
-  /melbourne (and|&) olympic parks/i,
-  /marvel stadium/i,
-  /\bmcg\b/i,
-  /melbourne cricket ground/i,
-  /hisense arena/i,
-  /aami park/i,
-  /etihad stadium/i,
-  /docklands stadium/i,
-  /kia arena/i,
-  /sidney myer music bowl/i,
-]
 
 const GENERIC_GYM_PATTERNS = [
   /anytime fitness/i,
@@ -199,8 +258,8 @@ const COMMUNITY_PATTERNS = [
   /aligned leisure/i,
 ]
 
-function isExcluded(name: string): boolean {
-  if (EVENT_ARENA_PATTERNS.some((re) => re.test(name))) return true
+function isExcluded(name: string, city: CityConfig): boolean {
+  if (city.extraExcludePatterns?.some((re) => re.test(name))) return true
   if (GENERIC_GYM_PATTERNS.some((re) => re.test(name))) return true
   return false
 }
@@ -250,16 +309,17 @@ function deriveOpeningHours(
   return Object.keys(out).length > 0 ? out : null
 }
 
-type DropReason = 'non_vic' | 'missing_fields' | 'excluded'
+type DropReason = 'wrong_state' | 'missing_fields' | 'excluded'
 
 function derive(
   place: PlaceResult,
+  city: CityConfig,
   matchedQueries: string[],
 ): DerivedCourt | DropReason {
   if (!place.id || !place.location || !place.addressComponents) return 'missing_fields'
 
   const state = pickComponent(place.addressComponents, 'administrative_area_level_1')
-  if (state?.shortText !== 'VIC') return 'non_vic'
+  if (state?.shortText !== city.state) return 'wrong_state'
 
   const suburb = pickComponent(place.addressComponents, 'locality')
   const postcode = pickComponent(place.addressComponents, 'postal_code')
@@ -268,7 +328,7 @@ function derive(
   const name = place.displayName?.text ?? ''
   const types = place.types ?? []
 
-  if (isExcluded(name)) return 'excluded'
+  if (isExcluded(name, city)) return 'excluded'
 
   return {
     googlePlaceId: place.id,
@@ -296,13 +356,21 @@ function derive(
 }
 
 async function main() {
-  console.log(`Querying Places API (New) — Greater Melbourne, ${RADIUS_METERS / 1000}km radius`)
+  const cityArg = process.argv[2]?.toLowerCase()
+  if (!cityArg || !CITIES[cityArg]) {
+    console.error('Usage: tsx scripts/seed-city.ts <melbourne|sydney|brisbane>')
+    console.error(`Available cities: ${Object.keys(CITIES).join(', ')}`)
+    process.exit(1)
+  }
+
+  const city = CITIES[cityArg]
+  console.log(`Querying Places API (New) — ${city.label}, ${city.radiusMeters / 1000}km radius`)
   const byPlaceId = new Map<string, PlaceResult>()
   const queriesByPlaceId = new Map<string, Set<string>>()
 
   for (const query of QUERIES) {
     process.stdout.write(`  • "${query}" ... `)
-    const places = await searchAllPages(query)
+    const places = await searchAllPages(city, query)
     console.log(`${places.length} results`)
     for (const p of places) {
       if (!p.id) continue
@@ -317,15 +385,15 @@ async function main() {
   const totalUnique = byPlaceId.size
   const courts: DerivedCourt[] = []
   const excludedNames: string[] = []
-  let droppedNonVic = 0
+  let droppedWrongState = 0
   let droppedMissing = 0
   let droppedExcluded = 0
 
   for (const [id, place] of byPlaceId) {
     const matched = [...(queriesByPlaceId.get(id) ?? [])]
-    const result = derive(place, matched)
+    const result = derive(place, city, matched)
     if (typeof result === 'string') {
-      if (result === 'non_vic') droppedNonVic++
+      if (result === 'wrong_state') droppedWrongState++
       else if (result === 'missing_fields') droppedMissing++
       else if (result === 'excluded') {
         droppedExcluded++
@@ -342,11 +410,14 @@ async function main() {
 
   const output = {
     generatedAt: new Date().toISOString(),
+    city: city.slug,
+    label: city.label,
+    state: city.state,
     queries: QUERIES,
-    melbourneCenter: MELBOURNE_CENTER,
-    radiusMeters: RADIUS_METERS,
+    center: city.center,
+    radiusMeters: city.radiusMeters,
     totalUnique,
-    droppedNonVic,
+    droppedWrongState,
     droppedMissing,
     droppedExcluded,
     excludedNames,
@@ -354,12 +425,12 @@ async function main() {
     courts,
   }
 
-  const outPath = resolve(process.cwd(), 'seed-output.json')
+  const outPath = resolve(process.cwd(), `seed-output-${city.slug}.json`)
   await writeFile(outPath, JSON.stringify(output, null, 2))
 
   console.log()
   console.log(`Total unique places (across all queries): ${totalUnique}`)
-  console.log(`Dropped — outside VIC: ${droppedNonVic}`)
+  console.log(`Dropped — outside ${city.state}: ${droppedWrongState}`)
   console.log(`Dropped — missing required fields: ${droppedMissing}`)
   console.log(`Dropped — excluded by blocklist: ${droppedExcluded}`)
   console.log(`Kept: ${courts.length}`)

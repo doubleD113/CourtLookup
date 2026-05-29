@@ -33,8 +33,11 @@ interface SeedOutput {
 async function main() {
   const { prisma } = await import('../lib/prisma')
 
+  const cityArg = process.argv[2]?.toLowerCase()
+  const fileName = cityArg ? `seed-output-${cityArg}.json` : 'seed-output.json'
+
   try {
-    const path = resolve(process.cwd(), 'seed-output.json')
+    const path = resolve(process.cwd(), fileName)
     const raw = await readFile(path, 'utf8')
     const { courts } = JSON.parse(raw) as SeedOutput
     console.log(`Loaded ${courts.length} courts from ${path}`)

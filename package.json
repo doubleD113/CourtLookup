@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:melbourne": "tsx scripts/seed-melbourne.ts",
+    "seed:city": "tsx scripts/seed-city.ts",
+    "seed:melbourne": "tsx scripts/seed-city.ts melbourne",
+    "seed:sydney": "tsx scripts/seed-city.ts sydney",
+    "seed:brisbane": "tsx scripts/seed-city.ts brisbane",
     "seed:db": "tsx scripts/seed-db.ts",
     "classify:surface": "tsx scripts/classify-surface.ts",
     "check:urls": "tsx scripts/check-booking-urls.ts"

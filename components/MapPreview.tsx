@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps'
 import { useRouter } from 'next/navigation'
 
-const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
+const EAST_AU_CENTER = { lat: -32.5, lng: 147.5 }
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
 
 export interface MapPreviewCourt {
@@ -46,8 +46,8 @@ export default function MapPreview({ courts }: { courts: MapPreviewCourt[] }) {
   return (
     <div className="w-full h-[420px] rounded-2xl overflow-hidden border border-slate-700 shadow-2xl">
       <Map
-        defaultCenter={MELBOURNE_CENTER}
-        defaultZoom={11}
+        defaultCenter={EAST_AU_CENTER}
+        defaultZoom={5}
         mapId={MAP_ID}
         disableDefaultUI
         gestureHandling="cooperative"

@@ -72,12 +72,18 @@ const STEPS = [
 ]
 
 export default async function Home() {
-  const previewCourts = await prisma.court.findMany({
-    where: { hiddenAt: null },
-    select: { id: true, name: true, latitude: true, longitude: true },
-    orderBy: { verifiedAt: { sort: 'desc', nulls: 'last' } },
-    take: 30,
-  })
+  const PREVIEW_STATES = ['VIC', 'NSW', 'QLD'] as const
+  const perStateCourts = await Promise.all(
+    PREVIEW_STATES.map((state) =>
+      prisma.court.findMany({
+        where: { hiddenAt: null, state },
+        select: { id: true, name: true, latitude: true, longitude: true },
+        orderBy: { verifiedAt: { sort: 'desc', nulls: 'last' } },
+        take: 10,
+      })
+    )
+  )
+  const previewCourts = perStateCourts.flat()
 
   return (
     <div className="min-h-screen bg-white">
@@ -102,10 +108,10 @@ export default async function Home() {
             <div>
               <div className="inline-flex items-center gap-2 bg-orange-500/10 text-orange-400 text-sm px-3 py-1.5 rounded-full mb-8">
                 <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
-                Melbourne courts now listed
+                Melbourne, Sydney &amp; Brisbane now listed
               </div>
               <h1 className="text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-                Find Indoor Basketball Courts
+                Find Basketball Courts
                 <span className="text-orange-400"> Near You</span>
               </h1>
               <p className="text-slate-400 text-lg mb-8 leading-relaxed max-w-lg">
@@ -114,14 +120,14 @@ export default async function Home() {
               </p>
               <SearchBar />
               <p className="text-slate-500 text-sm mt-4">
-                Currently covering Melbourne &middot; Sydney &amp; Brisbane coming soon
+                Covering Melbourne, Sydney &amp; Brisbane &middot; more cities coming soon
               </p>
             </div>
             {/* Right: map preview */}
             <div>
               <MapPreview courts={previewCourts} />
               <p className="text-slate-500 text-xs text-center mt-3">
-                Showing {previewCourts.length} of our verified Melbourne courts &mdash; tap a marker to view details
+                Showing {previewCourts.length} verified courts across Melbourne, Sydney &amp; Brisbane &mdash; tap a marker to view details
               </p>
             </div>
           </div>
