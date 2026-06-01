@@ -18,6 +18,7 @@ interface Props {
   radiusKm: number
   facilityType?: string
   surface?: string
+  state?: string
 }
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
@@ -46,13 +47,15 @@ export default function SearchResults({
   radiusKm,
   facilityType,
   surface,
+  state,
 }: Props) {
   const router = useRouter()
   const [view, setView] = useState<'list' | 'map'>('list')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [pendingRadius, setPendingRadius] = useState(radiusKm)
   const hasFacilityFilter = !!facilityType && facilityType !== 'all'
-  const [showMoreFilters, setShowMoreFilters] = useState(hasFacilityFilter)
+  const hasStateFilter = !!state && state !== 'all'
+  const [showMoreFilters, setShowMoreFilters] = useState(hasFacilityFilter || hasStateFilter)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
@@ -60,8 +63,8 @@ export default function SearchResults({
   }, [radiusKm])
 
   useEffect(() => {
-    if (hasFacilityFilter) setShowMoreFilters(true)
-  }, [hasFacilityFilter])
+    if (hasFacilityFilter || hasStateFilter) setShowMoreFilters(true)
+  }, [hasFacilityFilter, hasStateFilter])
 
   const center = useMemo(() => {
     if (hasGeo && lat !== undefined && lng !== undefined) return { lat, lng }
@@ -79,6 +82,7 @@ export default function SearchResults({
     }
     if (facilityType && facilityType !== 'all') params.set('facilityType', facilityType)
     if (surface && surface !== 'all') params.set('surface', surface)
+    if (state && state !== 'all') params.set('state', state)
     for (const [k, v] of Object.entries(overrides)) {
       if (v === undefined || v === 'all') params.delete(k)
       else params.set(k, v)
@@ -115,6 +119,34 @@ export default function SearchResults({
             }`}
           >
             {labels[type]}
+          </Link>
+        )
+      })}
+    </div>
+  )
+
+  const statePills = (
+    <div className="flex items-center gap-2 flex-wrap">
+      {['all', 'VIC', 'NSW', 'QLD'].map((s) => {
+        const labels: Record<string, string> = {
+          all: 'Any state',
+          VIC: 'VIC',
+          NSW: 'NSW',
+          QLD: 'QLD',
+        }
+        const isActive = (state ?? 'all') === s
+        const params = buildParams({ state: s })
+        return (
+          <Link
+            key={s}
+            href={`/search?${params.toString()}`}
+            className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+              isActive
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+            }`}
+          >
+            {labels[s]}
           </Link>
         )
       })}
@@ -200,7 +232,12 @@ export default function SearchResults({
           </svg>
         </button>
       </div>
-      {showMoreFilters && facilityPills}
+      {showMoreFilters && (
+        <div className="flex flex-col gap-2">
+          {facilityPills}
+          {statePills}
+        </div>
+      )}
     </div>
   )
 

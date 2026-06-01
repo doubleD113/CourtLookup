@@ -9,6 +9,7 @@ interface Props {
     q?: string
     facilityType?: string
     surface?: string
+    state?: string
     lat?: string
     lng?: string
     radius?: string
@@ -33,6 +34,7 @@ async function searchCourtsByText(
   q: string,
   facilityType?: string,
   surface?: string,
+  state?: string,
 ): Promise<Court[]> {
   const isPostcode = /^\d{4}$/.test(q.trim())
 
@@ -51,6 +53,10 @@ async function searchCourtsByText(
     where.surface = surface
   }
 
+  if (state && state !== 'all') {
+    where.state = state
+  }
+
   return prisma.court.findMany({ where, orderBy: { name: 'asc' }, take: 100 }) as Promise<Court[]>
 }
 
@@ -60,11 +66,13 @@ async function searchCourtsByRadius(
   radiusKm: number,
   facilityType?: string,
   surface?: string,
+  state?: string,
 ): Promise<CourtWithDistance[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = { hiddenAt: null }
   if (facilityType && facilityType !== 'all') where.facilityType = facilityType
   if (surface && surface !== 'all') where.surface = surface
+  if (state && state !== 'all') where.state = state
 
   const courts = (await prisma.court.findMany({ where, take: 500 })) as Court[]
 
@@ -75,7 +83,7 @@ async function searchCourtsByRadius(
 }
 
 export default async function SearchPage({ searchParams }: Props) {
-  const { q, facilityType, surface, lat, lng, radius } = await searchParams
+  const { q, facilityType, surface, state, lat, lng, radius } = await searchParams
   const query = q?.trim() ?? ''
   const latNum = lat ? parseFloat(lat) : NaN
   const lngNum = lng ? parseFloat(lng) : NaN
@@ -84,9 +92,9 @@ export default async function SearchPage({ searchParams }: Props) {
 
   let courts: CourtWithDistance[] = []
   if (hasGeo) {
-    courts = await searchCourtsByRadius(latNum, lngNum, radiusKm, facilityType, surface)
+    courts = await searchCourtsByRadius(latNum, lngNum, radiusKm, facilityType, surface, state)
   } else if (query) {
-    courts = await searchCourtsByText(query, facilityType, surface)
+    courts = await searchCourtsByText(query, facilityType, surface, state)
   }
 
   return (
@@ -116,6 +124,7 @@ export default async function SearchPage({ searchParams }: Props) {
           radiusKm={radiusKm}
           facilityType={facilityType}
           surface={surface}
+          state={state}
         />
       </main>
     </div>

@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const radiusKm = parseFloat(searchParams.get('radius') ?? '10')
   const facilityType = searchParams.get('facilityType')
   const surface = searchParams.get('surface')
+  const state = searchParams.get('state')
 
   if (!q && (!lat || !lng)) {
     return NextResponse.json({ error: 'Provide q or lat+lng' }, { status: 400 })
@@ -44,6 +45,10 @@ export async function GET(req: NextRequest) {
 
   if (surface && surface !== 'all') {
     where.surface = surface
+  }
+
+  if (state && state !== 'all') {
+    where.state = state
   }
 
   const courts = await prisma.court.findMany({

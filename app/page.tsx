@@ -186,6 +186,14 @@ export default async function Home() {
           <p className="text-slate-500 text-sm">
             A directory for finding indoor basketball courts in Australia.
           </p>
+          <a
+            href="https://example.com/courtlookup-feedback"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-white text-sm underline underline-offset-4"
+          >
+            Send feedback
+          </a>
         </div>
       </footer>
     </div>

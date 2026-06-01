@@ -4,7 +4,8 @@
   "description": "Basketball Court Availability Portal - Aggregates basketball court availability across Australia",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
     "seed:city": "tsx scripts/seed-city.ts",
