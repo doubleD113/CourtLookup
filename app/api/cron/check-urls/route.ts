@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkAllBookingUrls } from '@/lib/check-booking-urls'
 
-export const maxDuration = 600
+export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {

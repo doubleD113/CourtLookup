@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 const USER_AGENT =
   'Mozilla/5.0 (compatible; CourtLookupBot/1.0; +https://courtlookup.app/about)'
 const REQUEST_TIMEOUT_MS = 10000
-const DELAY_BETWEEN_REQUESTS_MS = 2000
+const DELAY_BETWEEN_REQUESTS_MS = 1000
 
 export type CheckResult = {
   courtId: string
