@@ -25,6 +25,7 @@ function BetaForm() {
       })
       if (!res.ok) {
         setError(res.status === 401 ? 'Invalid invite code' : 'Sign-in failed')
+        setSubmitting(false)
         return false
       }
       router.replace(redirectTo)
@@ -32,9 +33,8 @@ function BetaForm() {
       return true
     } catch {
       setError('Network error')
-      return false
-    } finally {
       setSubmitting(false)
+      return false
     }
   }
 
@@ -51,7 +51,7 @@ function BetaForm() {
     await submit(token)
   }
 
-  if (magicToken && !error) {
+  if ((magicToken || submitting) && !error) {
     return (
       <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center text-center space-y-4">
         <svg
@@ -70,7 +70,7 @@ function BetaForm() {
         </svg>
         <div>
           <h1 className="text-base font-semibold text-slate-900">Signing you in…</h1>
-          <p className="text-sm text-slate-500 mt-1">One sec.</p>
+          <p className="text-sm text-slate-500 mt-1">Loading the directory.</p>
         </div>
       </div>
     )
