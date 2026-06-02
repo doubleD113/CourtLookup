@@ -51,6 +51,31 @@ function BetaForm() {
     await submit(token)
   }
 
+  if (magicToken && !error) {
+    return (
+      <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center text-center space-y-4">
+        <svg
+          className="animate-spin h-8 w-8 text-orange-500"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+          <path
+            d="M22 12a10 10 0 0 1-10 10"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div>
+          <h1 className="text-base font-semibold text-slate-900">Signing you in…</h1>
+          <p className="text-sm text-slate-500 mt-1">One sec.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -88,8 +113,24 @@ function BetaForm() {
       <button
         type="submit"
         disabled={submitting || token.length === 0}
-        className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+        className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-70 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
       >
+        {submitting && (
+          <svg
+            className="animate-spin h-4 w-4 text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+            <path
+              d="M22 12a10 10 0 0 1-10 10"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
         {submitting ? 'Verifying…' : 'Enter beta'}
       </button>
 
